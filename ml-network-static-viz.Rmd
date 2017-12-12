@@ -12,8 +12,60 @@ mainfont: NanumGothic
  
 ``` {r, include=FALSE}
 source("tools/chunk-options.R")
-source("~/Dropbox/07_visualization/network/02.code/static-rmarkdown-code.R")
 knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
+
+library(igraph)
+library(network)
+library(sna)
+library(ndtv)
+library(tidyverse)
+
+##=======================================================================
+## 01. 데이터 가져오기
+##=======================================================================
+
+#-----------------------------------------------------------------------
+# edgelist
+
+nodes <- read_csv("https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset1-Media-Example-NODES.csv", col_names = TRUE)
+links <- read_csv("https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset1-Media-Example-EDGES.csv", col_names = TRUE)
+
+#-----------------------------------------------------------------------
+# 데이터 살펴보기
+#-----------------------------------------------------------------------
+
+head(nodes)
+head(links)
+nrow(nodes); length(unique(nodes$id))
+nrow(links); nrow(unique(links[,c("from", "to")]))
+
+# 데이터 중복 처리 : 총합
+# links <- links %>% group_by(from, to, type) %>%  
+#                    summarise(weight = sum(weight)) %>% 
+#                    arrange(from, to)
+
+
+links <- aggregate(links[,3], links[,-3], sum)
+links <- links[order(links$from, links$to),]
+colnames(links)[4] <- "weight"
+rownames(links) <- NULL
+
+#-----------------------------------------------------------------------
+# 행렬
+
+nodes2 <- read_csv("https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset2-Media-User-Example-NODES.csv", col_names = TRUE)
+links2 <- read_csv("https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset2-Media-User-Example-EDGES.csv", col_names = TRUE)
+
+rownames(links2) <- links2$X1
+links2$X1 <- NULL
+
+links2 <- as.matrix(links2)
+
+##=======================================================================
+## 02. 네트워크 데이터 변환
+##=======================================================================
+
+net <- graph.data.frame(links, nodes, directed = TRUE)
 ```
 
 
@@ -22,7 +74,7 @@ knitr::opts_chunk$set(echo=TRUE, message=FALSE, warning=FALSE)
 `plot(net)` 명령어를 통해 시각화를 할 경우, 중복되는 엣지도 많고 해서 간략화할 필요가 있다.
 이때 사용되는 명령어가 `simplify()` 함수다.
 
-``` {r network-viz-simplify, warning=FALSE}
+``` {r network-viz-simplify, eval=FALSE}
 # plot(net)
 net <- simplify(net, remove.multiple = FALSE, remove.loops = TRUE) 
 # net <- simplify(net, edge.attr.comb=list(Weight="sum","ignore"))
@@ -171,8 +223,8 @@ plot(net, edge.color=edge.col, edge.curved=.1)
 ##=======================================================================
 ## 01. 네트워크 배치
 ##=======================================================================
-source("02.code/01-clean.R")
-source("02.code/04-network-viz.R")
+# source("02.code/01-clean.R")
+# source("02.code/04-network-viz.R")
 
 # 바라바시 게임 (Preferential attachment)
 library(igraph)
