@@ -41,6 +41,7 @@ title: 데이터 과학 -- 네트워크
     - [데이터 과학을 위한 R 알고리즘](https://statkclee.github.io/r-algorithm/)
     - [데이터 과학을 위한 저작도구](https://statkclee.github.io/ds-authoring/)
         - [The Official xwMOOC Blog](https://xwmooc.netlify.com/)
+    - [비즈니스를 위한 오픈 소스 소프트웨어](http://statkclee.github.io/open-source-for-business/)
 - **데이터 과학**
     - [R 데이터과학](https://statkclee.github.io/data-science/)
     - [시각화](https://statkclee.github.io/viz/)
