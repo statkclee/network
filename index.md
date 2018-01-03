@@ -27,6 +27,7 @@ title: 데이터 과학 -- 네트워크
     - [R 팩키지 사회망 분석](ml-sna-r-ecosystem.html)        
     - [네트워크 유형](ml-network-type.html)
     - [네트워크 커뮤니티 탐지](ml-network-communities.html)
+    - [메르스 감염 네트워크](ml-mers-infection.html)
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
 
