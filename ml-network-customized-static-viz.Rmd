@@ -1,0 +1,300 @@
+---
+layout: page
+title: xwMOOC 네트워크
+subtitle: 메르스 감염 네트워크
+output:
+  html_document: 
+    toc: yes
+    highlight: tango
+    code_folding: hide
+    css: css/swc.css
+  pdf_document:
+    latex_engine: xelatex
+mainfont: NanumGothic
+---
+ 
+``` {r, include=FALSE}
+source("tools/chunk-options.R")
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=5, fig.height=5)
+
+library(extrafont)
+loadfonts()
+
+```
+
+## 1. 미디어 네트워크 데이터 [^Ognyanova] {#network-media-data}
+
+[^Ognyanova]: [Ognyanova, K. (2017) Network visualization with R. Retrieved from www.kateto.net/network-visualization.](http://kateto.net/network-visualization)
+
+Katya Ognyanova 박사는 친절하게 네트워크 데이터에 대한 좋은 교육 내용과 함께 데이터도 인터넷에 공유해 주었다.
+
+- 결점(Vertex, Node) 미디어 데이터: <https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset1-Media-Example-NODES.csv>
+- 연결선(Edge) 미디어 데이터: <https://raw.githubusercontent.com/kateto/R-Network-Visualization-Workshop/master/Data/Dataset1-Media-Example-EDGES.csv>
+
+`tidyverse` 팩키지 `read_csv()` 함수를 통해 결점과 연결선 데이터를 불러오고 나서 이를 `igraph` 팩키지 `graph_from_data_frame()` 함수로 `igraph` 그래프 객체로 변환시킨다.
+그리고 나서 `plot` 함수로 데이터가 정상적으로 들어왔는지 시각적으로 확인을 한다.
+
+``` {r media-network-data-import}
+# 0. 환경설정 --------------
+library(tidyverse)
+library(igraph)
+
+# 1. 데이터 가져오기 --------------
+## 1.1. 데이터 읽어들이기
+media_vert <- read_csv("data/Dataset1-Media-Example-NODES.csv")
+
+media_edge <- read_csv("data/Dataset1-Media-Example-EDGES.csv")
+
+## 1.2. 네트워크 데이터 변환
+media_ng <- graph_from_data_frame(d = media_edge, vertices = media_vert, directed = FALSE)
+
+plot(media_ng)
+```
+
+## 2. 정적 네트워크 시각화 {#network-media-static-viz}
+
+네트워크 데이터 시각화는 결국 **결점(Vertex, Node)**과 **연결선(Edge)**을 통해 다양한 시각적인 효과를 구현할 수 있다.
+
+### 2.1. 결점 크기 조정 {#network-media-static-viz-vertex}
+
+결점 크기를 조정하는 방법은 `vertex.size`에 `V(media_ng)$audience.size` 값을 넣어 크기를 반영할 수 있다.
+`media_vert` 데이터프레임에는 결점(Vertex) 속성이 다양하게 정의되어 있고, 연속형 `audience.size` 속성을 결점 크기로 지정한다.
+
+``` {r media-network-static-viz-vertex}
+# 3. 정적 네트워크 시각화 --------------
+## 3.1. 결점(Vertex, Node) -----
+### 3.1.1. 결점 크기 반영
+# V(media_ng)[[1:5]]
+
+plot(media_ng, 
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     vertex.size = V(media_ng)$audience.size / 2,
+     edge.color = 'black',
+     edge.arrow.size = .05,
+     main = "미국 언론사: 결점 크기를 반영")
+```
+
+
+### 2.2. 결점 색상 조정 {#network-media-static-viz-vertex-color}
+
+결점 색상를 조정하는 방법은 `vertex.color`에 `V(media_ng)$type.label` 값을 넣어 변형된 색상을 반영할 수 있다.
+`media_vert` 데이터프레임에는 결점(Vertex) 속성이 다양하게 정의되어 있고, 범주형 `type.label` 속성에 범주별로 색상을 지정한다.
+이를 위해 먼저 `V(media_ng)$color`에 각 범주별로 색상을 지정한다.
+
+`legend` 범례도 맞춰 동일하게 지정한다.
+
+``` {r media-network-static-viz-vertex-color}
+### 3.1.2. 결점 색상 반영 
+### 색상 정의
+# V(media_ng)$color <- case_when(V(media_ng)$media.type == 1 ~ "lightblue", 
+#                                V(media_ng)$media.type == 2 ~ "lightgreen", 
+#                                TRUE ~ "gray90")
+V(media_ng)$color <- case_when(V(media_ng)$type.label == "Newspaper" ~ "red", 
+                               V(media_ng)$type.label == "Online" ~ "blue", 
+                               TRUE ~ "gray90")
+
+
+plot(media_ng, 
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     vertex.size = V(media_ng)$audience.size / 2,
+     # vertex.color = V(media_ng)$media.type,
+     edge.color = 'black',
+     edge.arrow.size = .05,
+     main = "미국 언론사: 결점 색상을 반영")
+
+### 범례 추가
+media_color <- adjustcolor( c("red", "blue", "gray"), alpha=.7)
+
+legend(x=-1.5, y=-1.1, c("Newspaper","Online News", "Television"), pch=21,
+       col="#777777", pt.bg = media_color, 
+       pt.cex=2, cex=.8, bty="n", ncol=1)
+
+```
+
+### 2.3. 연결선 크기 조정 {#network-media-static-viz-edge-size}
+
+연결선 크기를 조정하는 방법은 `edge.width`에 `E(media_ng)$weight` 값을 넣어 연결선 선폭을 반영할 수 있다.
+`media_edge` 데이터프레임에는 연결선(Edge) 속성이 다양하게 정의되어 있고, 연속형 `weight` 속성을 연결선 선폭으로 지정한다.
+
+``` {r media-network-static-viz-edge-size}
+## 3.2. 연결선(Edge) -----
+### 3.2.1. 연결선 크기 반영
+plot(media_ng, 
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_ng)$weight / 3,
+     edge.color = 'black',
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     main = "미국 언론사: 연결선 선폭을 반영")
+```
+
+### 2.4. 연결선 색상 조정 {#network-media-static-viz-edge-color}
+
+연결선 색상를 조정하는 방법은 `vertex.color`에 `V(media_ng)$type.label` 값을 넣어 변형된 색상을 반영할 수 있다.
+`media_vert` 데이터프레임에는 결점(Vertex) 속성이 다양하게 정의되어 있고, 범주형 `type.label` 속성에 범주별로 색상을 지정한다.
+이를 위해 먼저 `V(media_ng)$color`에 각 범주별로 색상을 지정한다.
+
+`legend` 범례도 맞춰 동일하게 지정한다.
+
+``` {r media-network-static-viz-edge-color}
+### 3.2.2. 연결선 색상 반영
+E(media_ng)$color <- case_when(E(media_ng)$type == "hyperlink" ~ "lightblue", 
+                                 E(media_ng)$type == "mention"   ~ "lightgreen")
+
+plot(media_ng, 
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_ng)$weight / 3,
+     edge.color = E(media_ng)$color,
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     main = "미국 언론사: 연결선 색상을 반영")
+
+### 범례 추가
+edge_color <- adjustcolor( c("lightblue", "lightgreen"), alpha=.7)
+
+legend(x=-1.5, y=-1.1, c("hyperlink","mention"), 
+       fill = edge_color, cex=.8, bty="n", ncol=1)
+
+```
+
+
+### 2.5. 결점 라벨 크기 및 색상 조정 {#network-media-static-viz-label-color-size}
+
+`vertex.shape`을 "none"으로 설정해서 결점을 없애고 그 빈자리를 라벨로 채우는 방법이 때로는 도움이 된다.
+
+라벨을 조정하는 방법은 `vertex.label`에 `vertex.label = V(media_ng)$media` 값을 넣어 라벨을 반영할 수 있다.
+`V(media_ng)$color`에 색상을 정의해서 `V(media_ng)$media.type` 미디어 유형 범주별로 색상을 달리 반영할 수 있다.
+
+``` {r media-network-static-viz-vertex-label}
+## 3.3. 라벨 텍스트(Label) -----
+
+V(media_ng)$color <- case_when(V(media_ng)$media.type == 1 ~ "red", 
+                               V(media_ng)$media.type == 2 ~ "blue", 
+                               TRUE ~ "orange")
+
+plot(media_ng, 
+     vertex.shape = "none",
+     vertex.label = V(media_ng)$media, 
+     vertex.label.cex = V(media_ng)$audience.size / mean(V(media_ng)$audience.size),
+     vertex.label.dist = 0,
+     vertex.label.color = V(media_ng)$color,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_ng)$weight / 3,
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     main = "미국 언론사: 결점대신 라벨")
+
+### 범례 추가
+media_color <- adjustcolor( c("red", "blue", "orange"), alpha=.7)
+
+legend(x=-1.5, y=-1.1, c("Newspaper","Online News", "Television"), pch=21,
+       col="#777777", pt.bg = media_color, 
+       pt.cex=2, cex=.8, bty="n", ncol=1)
+```
+
+
+## 3. 네트워크 데이터 조작 {#network-media-static-data-mgmt}
+
+### 3.1. 네트워크 데이터 전처리 {#network-media-static-data-mgmt-preprocessing}
+
+`simplify()` 함수를 통해 중복된 결점이나 반복되는 연결선을 제외하거나 중복되는 연결선에 대해서 간략화하도록 사전 작업을 진행한다.
+이와 함께 격리된 결점(`V(media_ng)[igraph::degree(media_ng) == 0] `)에 대해서도 별도 작업을 할 수 있게 관리에 신경을 쓴다.
+
+``` {r media-network-data-mgmt}
+# 2. 네트워크 데이터 전처리 --------------
+## 2.1. 네트워크 간략화 
+media_sng <- simplify(media_ng, remove.multiple = TRUE, remove.loops = FALSE, 
+                      edge.attr.comb=c(weight="sum", type="ignore"))
+
+## 2.2. 고립된 노드 처리...
+media_isolated_ng <- V(media_ng)[igraph::degree(media_ng) == 0] 
+```
+
+### 3.2. 불필요한 결점(Vertex) 제거 {#network-media-static-data-mgmt-vert}
+
+결점(vertex) 속성값에 따라 유의미하지 않다(`audience.size >= 30`)고 판단되는 결점을 `induced_subgraph` 함수를 통해 걷어내고 이를 추후 네트워크 시각화와 분석에 사용한다.
+
+``` {r media-network-data-mgmt-vert, fig.width=12, fig.height=10}
+# 3. 네트워크 결점(Vertex) 간략화 --------------
+par(mfrow=c(1,2))
+### 원본데이터
+plot(media_ng, 
+     vertex.size = V(media_ng)$audience.size / 2,
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 1.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_ng)$weight / 3,
+     edge.color = 'black',
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     main = "원본데이터")
+
+### 중요하지 않은 결점 제거
+media_vert_sng <- induced_subgraph(media_sng, which(V(media_sng)$audience.size >= 30))
+
+plot(media_vert_sng, 
+     vertex.size = V(media_vert_sng)$audience.size / 2,
+     vertex.label = V(media_vert_sng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 1.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_vert_sng)$weight / 3,
+     edge.color = 'black',
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     main = "결점속성 반영 반영")
+```
+
+
+### 3.3. 불필요한 연결선(Edge) 제거 {#network-media-static-data-mgmt-vert}
+
+연결선(edge) 속성값에 따라 유의미하지 않다(`weight <= 10`)고 판단되는 연결선을 `igraph::delete_edges` 함수를 통해 걷어내고 이를 추후 네트워크 시각화와 분석에 사용한다.
+
+``` {r media-network-data-mgmt-edge, fig.width=12, fig.height=8}
+# 4. 네트워크 연결선(Edge) 간략화 --------------
+par(mfrow=c(1,2))
+
+### 원본데이터
+plot(media_ng, 
+     vertex.size = V(media_ng)$audience.size / 3,
+     vertex.label = V(media_ng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_ng)$weight / 3,
+     edge.color = 'black',
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     # layout=  layout_nicely(media_sng),
+     main = "원본데이터")
+
+### 중요하지 않은 연결선 제거
+
+media_edge_sng <- igraph::delete_edges(media_sng, E(media_sng)[[weight <= 10]])
+
+plot(media_edge_sng, 
+     vertex.size = V(media_edge_sng)$audience.size / 3,
+     vertex.label = V(media_edge_sng)$media, 
+     vertex.label.color = "black",
+     vertex.label.cex = 0.7,
+     vertex.label.family="NanumGothic",
+     edge.width = E(media_edge_sng)$weight / 3,
+     edge.color = 'black',
+     edge.curved=TRUE,
+     edge.arrow.size = .05,
+     # layout=  layout_nicely(media_edge_sng),
+     main = "연결선 속성 가중치 반영")
+```

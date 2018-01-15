@@ -20,7 +20,9 @@ title: 데이터 과학 -- 네트워크
     - [네트워크 데이터](ml-network-data.html)
     - [네트워크 데이터 연습문제](ml-network-data-ex.html)
 - **시각화**
-    - [정적 네트워크 데이터 시각화](ml-network-static-viz.html)
+    - 정적 네트워크 시각화  
+        - [정적 네트워크 데이터 시각화](ml-network-static-viz.html)
+        - [맞춤형 정적 네트워크 시각화](ml-network-customized-static-viz.html)
     - [동적 네트워크 데이터 시각화](ml-network-dynamic-viz.html)
     - [기타 네트워크 데이터 분석](ml-network-etc.html)
 - **고급 분석**    
