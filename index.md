@@ -23,10 +23,12 @@ title: 데이터 과학 -- 네트워크
     - 정적 네트워크
         - [정적 네트워크 데이터 시각화](ml-network-static-viz.html)
         - [맞춤형 정적 네트워크 시각화](ml-network-customized-static-viz.html)
-    - 정적 네트워크
+    - 동적 네트워크
         - [동적 네트워크 데이터 시각화](ml-network-dynamic-viz.html)
         - [맞춤형 동적 네트워크 시각화](ml-network-customized-interactive-viz.html)
     - [기타 네트워크 데이터 분석](ml-network-etc.html)
+- **`tidygraph` & `ggraph`**
+    - [`kateo` 미디어 데이터](tidygraph-media.html)
 - **고급 분석**    
     - [R 팩키지 사회망 분석](ml-sna-r-ecosystem.html)        
     - [네트워크 유형](ml-network-type.html)
