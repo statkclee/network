@@ -1,0 +1,169 @@
+---
+layout: page
+title: xwMOOC 네트워크
+subtitle: 상관분석
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+mainfont: NanumGothic
+---
+ 
+``` {r, include=FALSE}
+source("tools/chunk-options.R")
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+
+```
+
+# 1. 탐색적 데이터 분석 [^marketing-data] {#marketing-eda}
+
+[^marketing-data]: [R for Marketing Research and Analytics by Chris Chapman and Elea McDonnell Feit](http://r-marketing.r-forge.r-project.org/index.html)
+
+놀이공원 방문에 대한 만족도 조사를 한 데이터가 [rintro-chapter7.csv](http://r-marketing.r-forge.r-project.org/data/) 파일에 저장되어 있다.
+이 파일을 다운로드 받아 탐색적 데이터 분석을 수행한다. 단, 빠르고 신속해야만 한다.
+
+
+## 1.1. 놀이공원 데이터 {#marketing-eda-dataset}
+
+[rintro-chapter7.csv](http://r-marketing.r-forge.r-project.org/data/) 파일을 `read_csv()` 함수로 불러읽어 들인다.
+그리고 데이터가 크지 않아 100개만 뽑아서 살펴보자.
+
+``` {r marketing-eda-setup}
+# 0. 환경설정 ------------------
+
+library(tidygraph)
+library(tidyverse)
+library(ggraph)
+library(DT)
+library(corrplot)
+library(GGally)
+library(skimr)
+library(corrr)
+library(extrafont)
+loadfonts()
+
+# 1. 데이터 가져오기 ------------------
+market_df <- read_csv("http://r-marketing.r-forge.r-project.org/data/rintro-chapter7.csv")
+market_df %>% sample_n(100) %>% datatable()
+```
+
+## 1.1. 단변량 분석 {#marketing-eda-univariate}
+
+`skim()` 함수를 통해서 단변량 데이터 분석을 신속히 수행한다.
+
+``` {r marketing-eda-univariate}
+# 2. 탐색적 데이터 분석 ------------------
+## 2.1. 단변량 분석 ------------------
+skim(market_df)
+```
+
+## 1.2. 교차분석 {#marketing-eda-bivariate}
+
+`ggpairs()` 함수로 모든 변수에 대해서 교차분석을 수행한다.
+
+``` {r marketing-eda-bivariate}
+## 2.2. 교차 분석 ------------------
+ggpairs(market_df)
+```
+
+## 1.3. 상관분석 {#marketing-eda-correlation}
+
+`corrplot.mixed()` 함수로 모든 변수에 대해서 중요 변수에 대해 상관분석을 수행한다.
+
+``` {r marketing-eda-correlation}
+## 2.3. 상관 분석 ------------------
+market_df %>% 
+  mutate(log_dist = log(distance)) %>% 
+  select(num.child, log_dist, rides, games, wait, clean, overall) %>% 
+  cor() %>% 
+  corrplot.mixed(upper="ellipse")
+```
+
+# 2. 상관계수 네트워크 분석 {#marketing-network}
+
+## 2.1. 상관계수 기반 네트워크 분석 데이터프레임 {#marketing-network-correlation}
+
+상관계수 기반 네트워크 분석을 위해서 `corrr` 팩키지를 활용한다.
+기존 `cor()` 함수는 데이터 상관계수 분석 결과가 행렬로 떨어지게 되어 다음 분석단계에서 활용시 애로사항이 많았다.
+[corrr](https://github.com/drsimonj/corrr/) 팩키지는 후속 분석이 용이하도록 다양한 함수도 제공한다.
+
+``` {r marketing-network-correlation}
+# 3. 네트워크 분석 ------------------
+## 3.1. 상관분석 행렬 --> 데이터프레임 데이터
+market_cor_df <- market_df %>% 
+  mutate(log_dist = log(distance)) %>% 
+  select(num.child, log_dist, rides, games, wait, clean, overall) %>% 
+  t() %>% correlate() %>% # (2)
+  shave(upper = TRUE) %>% # (3)
+  stretch(na.rm = TRUE) %>% 
+  filter(r >=0.9993)
+```
+
+## 2.2. 상관계수 기반 네트워크 분석 시각화 {#marketing-network-correlation}
+
+상관계수는 두변수 간의 관계로 방향성이 없이 두변수간의 상관계수를 `corrr` 팩키지 `stretch()` 함수로 구현하였다.
+이를 `tidygraph` 인자로 넣어 네트워크 자료형을 변환시킨 후에 `ggraph()` 함수로 시각화한다.
+
+``` {r marketing-network-correlation-viz}
+## 3.2. 네트워크 시각화
+### 3.2.1. 초기 시각화 -----
+market_graph <- as_tbl_graph(market_cor_df, directed = FALSE)
+
+ggraph(market_graph) +
+  geom_edge_link() +
+  geom_node_point() +
+  geom_node_text(aes(label = name), size = 3, repel = TRUE) +
+  theme_graph(base_family="NanumGothic")  
+```
+
+## 2.3. 상관계수 기반 네트워크 고급 시각화 {#marketing-network-correlation-advanced-viz}
+
+네트워크 분석에서 결점 노드는 범주형, 연결선 엣지는 숫자형 가중치(`weight`)를 사용하여 이를 
+네트워크 그래프에 반영시킨다.
+
+``` {r marketing-network-correlation-advanced-viz}
+### 3.2.2. 주말 효과 -----
+# 주말 효과
+weekend_df <- data_frame(
+  name = paste0("V",rownames(market_df)),
+  weekend = as.factor(market_df$weekend)
+)
+
+market_graph <- market_graph %>%
+  activate(nodes) %>%
+  left_join(weekend_df, by = "name")
+
+# 연결선 가중치(weight)
+market_graph <- market_graph %>%
+  activate(edges) %>%
+  rename(weight = r)
+
+# 시각화
+ggraph(market_graph) +
+  geom_edge_link(aes(width = weight), alpha = 0.2) +
+  scale_edge_width(range = c(0.2, 1)) +
+  geom_node_point(aes(color = weekend), size = 2) +
+  geom_node_text(aes(label = name), size = 3, repel = TRUE) +
+  theme_graph(base_family="NanumGothic")  
+```
+
+# 3. 군집분석 {#marketing-network-correlation-clustering}
+
+`tidygraph` 팩키지에 다수 군집분석관련된 함수가 지원되는데 `group_*`로 시작한다.
+`group_infomap()`, `group_edge_betweenness()` 함수가 대표적이다.
+이를 반영하여 군집을 식별하고 시각화한다.
+
+``` {r marketing-network-correlation-clustering}
+# 4. 군집분석 ------------------
+market_graph %>% 
+  activate(nodes) %>% 
+  mutate(community = as.factor(group_infomap())) %>%
+  mutate(community = fct_lump(community, 5)) %>% 
+  ggraph(layout = "graphopt") +
+  geom_edge_link(width = 1, colour = "lightgray") +
+  geom_node_point(aes(color = community), size = 2) +
+  geom_node_text(aes(label = name), size = 3, repel = TRUE) +
+  theme_graph(base_family="NanumGothic")
+```
