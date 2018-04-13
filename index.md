@@ -29,6 +29,7 @@ title: 데이터 과학 -- 네트워크
     - [기타 네트워크 데이터 분석](ml-network-etc.html)
 - **`tidygraph` & `ggraph`**
     - [`kateo` 미디어 데이터](tidygraph-media.html)
+    - [메르스 데이터 - shiny](tidygraph-mers.html)
 - **고급 분석**    
     - [R 팩키지 사회망 분석](ml-sna-r-ecosystem.html)        
     - [네트워크 유형](ml-network-type.html)
