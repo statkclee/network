@@ -186,3 +186,162 @@ bscols(
 )
 ```
 
+
+## 6. `shiny` 메르스 네트워크 {#mers-network-shiny}
+
+`shiny` 팩키지를 활용하여 메르스 네트워크에 대한 인터랙티브 분석을 시도해본다.
+환자 ID를 선택하여 네트워크를 연결시켜 본다.
+
+`global.R` 파일에 엑셀 원본데이터를 불러와서 이를 `tidygraph` 네트워크 객체로 변환시키고,
+네트워크 기술통계량을 결점 노드 데이터프레임으로 저장시킨다.
+
+``` {r shiny-mers-global, eval=FALSE}
+# 0. 환경설정 -----
+library(tidyverse)
+library(lubridate)
+library(ggthemes)
+library(extrafont)
+loadfonts()
+library(igraph)
+library(DT)
+library(tidygraph)
+library(ggraph)
+library(readxl)
+library(viridisLite)
+
+# 1. 데이터 가져오기 -----
+## 1.1. 결점 노드
+mers_info <- read_excel("data/(한국어)2015-10-02xlsx.xlsx", sheet="확진자")
+colnames(mers_info) <-c("확진자", "성별", "나이", "확진일", "현상태", "현상태_판정일자", 
+                        "감염병원", "감염지역", "감염 이유", "비고")
+
+mers_vert <- mers_info %>%
+  mutate(병원색상 = as.numeric(fct_lump(감염병원, 3))) %>% 
+  mutate(id = 1:nrow(mers_info)) %>% 
+  rename(label = 확진자) %>% 
+  select(id, label)
+
+## 1.2. 연결선 엣지
+mers_edge <- read_excel("data/(한국어)2015-10-02xlsx.xlsx", sheet="확진자간 link") %>% 
+  select(SOURCE, TARGET)
+
+### 연결선을 결점과 연결
+mers_edge <- mers_edge %>%
+  left_join(mers_vert, by = c("SOURCE" = "label")) %>%
+  select(-SOURCE) %>% 
+  rename(from = id)
+
+mers_edge <- mers_edge %>%
+  left_join(mers_vert, by = c("TARGET" = "label")) %>%
+  select(-TARGET) %>% 
+  rename(to = id)
+
+## 1.3. 결점 노드 & 연결선 추가정보
+mers_vert <- left_join(mers_vert, mers_info, by=c("label" =  "확진자")) %>% 
+  select(id, label, 성별, 나이, 감염병원)
+
+## 1.4. 네트워크 데이터 변환
+mers_tidy_nw <- tbl_graph(
+  nodes = mers_vert, edges = mers_edge, directed = TRUE
+)
+
+# 2. 네트워크 기술통계 ------
+## 2.1. 기술통계량 -----
+mers_tidy_nw <- mers_tidy_nw %>% 
+  activate(nodes) %>% 
+  mutate(degree_out = centrality_degree(mode="out"),
+         degree_in = centrality_degree(mode="in"),
+         degree_inout = centrality_degree(mode="all"),
+         degree_between = centrality_betweenness()) %>% 
+  mutate(hospital = as.factor(감염병원)) %>% 
+  mutate(hospital = fct_lump(hospital, 6)) %>% 
+  mutate(color = case_when(str_detect(hospital, "N/A")   ~ viridis(7)[1],
+                           str_detect(hospital, "건양")  ~ viridis(7)[2],
+                           str_detect(hospital, "대청")  ~ viridis(7)[3],
+                           str_detect(hospital, "삼성")  ~ viridis(7)[4],
+                           str_detect(hospital, "평택")  ~ viridis(7)[5],
+                           str_detect(hospital, "한림")  ~ viridis(7)[6],
+                           str_detect(hospital, "Other") ~ viridis(7)[7]))
+
+## 2.2. tidy 네트워크를 데이터프레임으로 변환 -----
+mers_tidy_df <- mers_tidy_nw %>% 
+  activate(nodes) %>% 
+  as_tibble
+```
+
+`ui.R`, `server.R`에 환자 ID를 선택하면 자동으로 네트워크 그래프를 생성시키도록 코딩을 한다.
+
+
+<div class = "row">
+  <div class = "col-md-6">
+**`ui.R`**
+
+``` {r mers-network-shiny-ui, eval=FALSE}
+shinyUI(fluidPage(
+  
+  titlePanel("Interactive MERS Network"),
+  
+  sidebarLayout(
+    div(style="width: 40%;",
+      sidebarPanel(
+        selectInput("node", "Select a Patient", choices = unique(V(mers_tidy_nw)$id), multiple=TRUE, width = "50%")
+      )
+    ),
+    
+    mainPanel(
+      column(width=6,
+        plotOutput("network_plot", width=800, height=800)
+      ),
+      column(width=6,
+        DT::dataTableOutput("mers_table")
+      )
+    )
+  )
+))
+
+```
+  </div>
+  <div class = "col-md-6">
+**`server.R`**
+
+``` {r mers-network-shiny-server, eval=FALSE}
+shinyServer(function(input, output) {
+  
+  mers_subgraph <- reactive({
+    # 특정 결점기준 시각화 -----
+    req(input$node)
+    edges <- E(mers_tidy_nw)[input$node%--%V(mers_tidy_nw)]
+
+    mers_subgraph <- subgraph.edges(graph = mers_tidy_nw, eids = edges) %>%
+      simplify(remove.multiple = TRUE, remove.loops = TRUE)
+
+  })
+  
+  output$network_plot <- renderPlot({
+    
+    # 2. 데이터 시각화 ------
+    ggraph(mers_subgraph(), layout = "graphopt") +
+      geom_node_point(aes(colour = 성별)) +
+      geom_edge_link() +
+      scale_edge_width(range = c(0.2, 2)) +
+      geom_node_text(aes(label = label), repel = TRUE) +
+      theme_graph(base_family="NanumGothic")
+    
+  })
+  
+  output$mers_table <- DT::renderDataTable({
+
+    mers_tidy_df %>%
+      datatable()
+  })
+})
+
+```
+
+  </div>
+</div>
+
+
+
+<img src="fig/mers-shiny.gif" alt="메르스 Shiny 네트워크" width="100%" />
+
