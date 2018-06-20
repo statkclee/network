@@ -30,12 +30,14 @@ title: 데이터 과학 -- 네트워크
 - **`tidygraph` & `ggraph`**
     - [`kateo` 미디어 데이터](tidygraph-media.html)
     - [메르스 데이터 - shiny](tidygraph-mers.html)
+    - [네트워크 기술통계](tidygraph-descriptive-stat.html)
 - **고급 분석**    
     - [R 팩키지 사회망 분석](ml-sna-r-ecosystem.html)        
     - [네트워크 유형](ml-network-type.html)
     - [네트워크 커뮤니티 탐지](ml-network-communities.html)
     - [메르스 감염 네트워크](ml-mers-infection.html)
     - [상관분석](tidygraph-correlation.html)
+    - [제7회 지방선거 광역의원 비례 정당별 득표](tidygraph-local-election.html)
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
 

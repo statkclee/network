@@ -1,0 +1,39 @@
+---
+layout: page
+title: xwMOOC 네트워크
+subtitle: 네트워크 기술통계
+output:
+  html_document: 
+    toc: yes
+    toc_float: true
+    highlight: tango
+    code_folding: show
+    number_section: true
+mainfont: NanumGothic
+---
+ 
+``` {r, include=FALSE}
+source("tools/chunk-options.R")
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, fig.width=12, fig.height=12)
+
+library(igraph)
+library(tidyverse)
+library(extrafont)
+loadfonts()
+
+```
+
+# 네트워크 기술통계 [^network-got] {#network-descriptive-stat}
+
+[^network-got]: [Shirin Glander(2017), Network analysis of Game of Thrones, data science+](https://datascienceplus.com/network-analysis-of-game-of-thrones/)
+
+네트워크 기술 통계 
+
+- 네트워크 중심성(Centrality): 결점(vertext)에서 연결선(edge)를 통해 주고받은 횟수, 중심성이 높은 네트워크는 일부 결점이 극단적으로 많은 연결을 갖는 반면
+낮은 중심성은 다수 결점이 유사한 수의 연결선을 갖는 것을 나타냄.
+
+
+
+
+
+
