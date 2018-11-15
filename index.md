@@ -38,6 +38,8 @@ title: 데이터 과학 -- 네트워크
     - [메르스 감염 네트워크](ml-mers-infection.html)
     - [상관분석](tidygraph-correlation.html)
     - [제7회 지방선거 광역의원 비례 정당별 득표](tidygraph-local-election.html)
+- **예측모형(Predictive Model)**
+    - [네트워크 변수(Feature)](nw-pm-feature.html)
 
 ### [xwMOOC 오픈 교재](https://statkclee.github.io/xwMOOC/)
 
